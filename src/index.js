@@ -41,14 +41,8 @@ app.set('view engine', 'ejs');
 
 let server;
 let issuer;
-let client;
 
-const configIndex = 0;
-const clientConfig = configuration.clients[configIndex];
-const clientId = clientConfig.client_id;
-const clientSecret = clientConfig.client_secret;
 let serverUri;
-let redirectUri;
 let listener;
 
 (async function() {
@@ -64,11 +58,11 @@ try {
     listener = await ngrok.forward({ addr: 3000, authtoken_from_env: true });
     serverUri = listener.url();
     console.log(`Ingress established at: ${serverUri}`);
-    clientConfig.redirect_uris[0] = `${serverUri}/callback`;
-    redirectUri = clientConfig.redirect_uris[0];
+    configuration.clients[0].redirect_uris[0] = `${serverUri}/callback`;
+    // configuration.clients[0].defaultResource = async(ctx, client, oneOf) => serverUri,
 
-    console.log(`configuration.clients[${configIndex}]`, configuration.clients[configIndex]);
-  const provider = new Provider(ISSUER, { adapter, ...configuration });
+    console.dir(configuration.clients);
+  const provider = new Provider(serverUri, { adapter, ...configuration });
 
   if (prod) {
     app.enable('trust proxy');
@@ -94,22 +88,28 @@ try {
 
 
   app.get('/login', async (req, res) => {
+    const clientId = req.params.client_id || configuration.clients[0].client_id;
+    const client = getClient(clientId);
+    const clientConfig = getClientConfig(clientId);
     const redirectTo = client.authorizationUrl({
       scope: 'openid email profile',
-      // resource: 'https://localhost:3001',
       response_mode: 'query',
       code_challenge: codeChallenge,
       code_challenge_method: codeChallengeMethod,
       state,
       nonce,
+      redirect_uri: clientConfig.redirect_uris[0]
     });
     res.redirect(redirectTo);
   });
 
   app.get('/callback', async (req, res) => {
+    const clientId = req.params.client_id || configuration.clients[0].client_id;
+    const client = getClient(clientId);
+    const clientConfig = getClientConfig(clientId);
     const params = client.callbackParams(req);
     console.log({ params });
-    const tokens = await client.callback(redirectUri, params, {
+    const tokens = await client.callback(clientConfig.redirect_uris[0], params, {
       state: params.state,
       nonce,
       code_verifier: codeVerifier,
@@ -129,13 +129,6 @@ try {
     console.log(`login via ${serverUri}/login`);
 
     issuer = await Issuer.discover(serverUri);
-    client = new issuer.Client({
-      client_id: clientId,
-      client_secret: clientSecret,
-      redirect_uris: [redirectUri],
-      response_types: ['code'],
-      // id_token_signed_response_alg (default "RS256")
-    }); // => Client
   });
 } catch (err) {
   if (server?.listening) server.close();
@@ -143,5 +136,16 @@ try {
   process.exitCode = 1;
 }
 })();
+
+const getClient = (clientId) => {
+  const clientConfig = getClientConfig(clientId);
+
+  if (!clientConfig) {
+    throw new Error(`Unable to find client with id ${clientId}`);
+  }
+  return new issuer.Client(clientConfig);
+};
+
+const getClientConfig = (clientId) => configuration.clients.find((client) => client.client_id === clientId);
 
 export default server;

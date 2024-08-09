@@ -19,6 +19,7 @@ class Account {
    *   or not return them in id tokens but only userinfo and so on.
    */
   async claims(use, scope) { // eslint-disable-line no-unused-vars
+    console.log('claims', {use, scope, 'this.profile': this.profile});
     if (this.profile) {
       return {
         sub: this.accountId, // it is essential to always return a sub claim
@@ -64,18 +65,32 @@ class Account {
   }
 
   static async findByFederated(provider, claims) {
+    console.log('findByFederated', {'claims': claims});
     const id = `${provider}.${claims.sub}`;
     if (!logins.get(id)) {
       logins.set(id, new Account(id, claims));
     }
+    console.log('findByFederated', {'logins.get(id)': logins.get(id)});
     return logins.get(id);
   }
 
   static async findByLogin(login) {
+    console.log('findByLogin', {login});
     if (!logins.get(login)) {
-      logins.set(login, new Account(login));
+      logins.set(login, new Account(login, {
+        email: 'johndoe@example.com',
+        email_verified: false,
+        family_name: 'Doe',
+        gender: 'male',
+        given_name: 'John',
+        locale: 'en-US',
+        middle_name: 'Middle',
+        name: 'John Doe',
+        nickname: 'Johny',
+      }));
     }
 
+    console.log('findByLogin', {'logins.get(login)': logins.get(login)});
     return logins.get(login);
   }
 
@@ -83,7 +98,20 @@ class Account {
     // token is a reference to the token used for which a given account is being loaded,
     //   it is undefined in scenarios where account claims are returned from authorization endpoint
     // ctx is the koa request context
-    if (!store.get(id)) new Account(id); // eslint-disable-line no-new
+    console.log('findAccount', {id});
+    if (!store.get(id)) new Account(id, {
+      email: 'johndoe@example.com',
+      email_verified: false,
+      family_name: 'Doe',
+      gender: 'male',
+      given_name: 'John',
+      locale: 'en-US',
+      middle_name: 'Middle',
+      name: 'John Doe',
+      nickname: 'Johny',
+    }); // eslint-disable-line no-new
+
+    console.log('findAccount', {'store.get(id)': store.get(id)});
     return store.get(id);
   }
 }

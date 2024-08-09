@@ -8,22 +8,32 @@ export default {
       client_secret: 'cid1s',
       grant_types: ['refresh_token', 'authorization_code'],
       redirect_uris: ['https://{id}.ngrok-free.app/callback', 'https://localhost:3001/callback', 'http://localhost:3000/callback'],
+      response_types: ['code'],
     },
     {
       client_id: 'cid2',
       client_secret: 'cid2s',
       grant_types: ['refresh_token', 'authorization_code'],
       redirect_uris: ['https://openidconnect.net/callback'],
+      response_types: ['code'],
     },
     {
       client_id: 'cid3',
       client_secret: 'cid3s',
       grant_types: ['refresh_token', 'authorization_code'],
       redirect_uris: ['https://fmp-dev.eu.auth0.com/login/callback'],
+      response_types: ['code'],
+    },
+    {
+      client_id: 'cid4',
+      client_secret: 'cid4s',
+      grant_types: ['refresh_token', 'authorization_code'],
+      redirect_uris: ['https://dev-fmp-jd.eu.auth0.com/login/callback'],
+      response_types: ['code'],
     },
   ],
   pkce: {
-    required: false,
+    required: () => false,
   },
   interactions: {
     url(ctx, interaction) { // eslint-disable-line no-unused-vars
